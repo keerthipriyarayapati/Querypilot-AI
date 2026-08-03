@@ -3,19 +3,19 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 import os
 import shutil
+import gc
 
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 
 from document_creator import create_documents
 
-
 PERSIST_DIRECTORY = "./chroma_db"
 
 
 def get_embeddings():
     """
-    Load the embedding model.
+    Load embedding model.
     """
     return OllamaEmbeddings(
         model="nomic-embed-text"
@@ -24,8 +24,8 @@ def get_embeddings():
 
 def create_vector_store():
     """
-    Create a new vector store if it doesn't exist.
-    Otherwise, load the existing one.
+    Creates a new vector store if it doesn't exist,
+    otherwise loads the existing one.
     """
 
     embeddings = get_embeddings()
@@ -58,13 +58,25 @@ def create_vector_store():
 
 def refresh_vector_store():
     """
-    Delete the old vector store and create a new one.
-    Call this whenever the database schema changes.
+    Refreshes the vector store whenever
+    database schema changes.
     """
 
     if os.path.exists(PERSIST_DIRECTORY):
-        shutil.rmtree(PERSIST_DIRECTORY)
-        print("Old vector store deleted.")
+
+        # Force Python to release references
+        gc.collect()
+
+        try:
+            shutil.rmtree(PERSIST_DIRECTORY)
+
+            print("Old vector store deleted.")
+
+        except PermissionError:
+
+            print("Vector store currently in use.")
+            print("Please restart the application and try again.")
+            return None
 
     vector_store = create_vector_store()
 

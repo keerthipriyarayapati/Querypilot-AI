@@ -5,15 +5,39 @@ from retriever import get_relevant_schema
 from chain import chain
 from sql_validator import validate_sql
 from executor import execute_query
+from question_classifier import classify_question
 
 
 def process_question(question):
+
+    if not classify_question(question):
+        return {
+        "success": False,
+        "error": "❌ This application only supports questions related to the uploaded database."
+        }
     """
-    Generates SQL, validates it, executes it,
-    and returns all the results.
+    Generates SQL, validates it,
+    executes it, and returns the result.
     """
 
-    schema = get_relevant_schema(question)
+    # ----------------------------------------
+    # Retrieve Relevant Schema
+    # ----------------------------------------
+
+    retrieved = get_relevant_schema(question)
+
+    if not retrieved["success"]:
+
+        return {
+            "success": False,
+            "error": "❌ This question is not related to the uploaded database."
+        }
+
+    schema = retrieved["schema"]
+
+    # ----------------------------------------
+    # Generate SQL
+    # ----------------------------------------
 
     sql_query = chain.invoke(
         {
@@ -22,11 +46,20 @@ def process_question(question):
         }
     )
 
+    # ----------------------------------------
+    # Validate SQL
+    # ----------------------------------------
+
     if not validate_sql(sql_query):
+
         return {
             "success": False,
             "error": "Unsafe SQL detected."
         }
+
+    # ----------------------------------------
+    # Execute SQL
+    # ----------------------------------------
 
     result = execute_query(sql_query)
 
@@ -57,4 +90,4 @@ if __name__ == "__main__":
 
     else:
 
-        print(output["error"])
+        print("\n" + output["error"])

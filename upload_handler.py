@@ -14,7 +14,6 @@ def upload_csv_files(uploaded_files):
 
             df = pd.read_csv(uploaded_file)
 
-            # Convert column names to lowercase
             df.columns = df.columns.str.lower()
 
             table_name = uploaded_file.name.replace(".csv", "").lower()
@@ -28,7 +27,6 @@ def upload_csv_files(uploaded_files):
 
             uploaded_tables.append(table_name)
 
-        # Refresh ChromaDB after uploading all tables
         refresh_vector_store()
 
         return {
